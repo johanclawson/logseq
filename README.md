@@ -51,10 +51,27 @@ Get the latest ARM64 build from [Releases](../../releases).
 
 ## Installation
 
+### Upgrading from Official Logseq
+
+**Good news:** You don't need to uninstall the official x64 version first. The ARM64 installer will upgrade your existing installation in place, preserving your settings. Your notes are stored separately in your graph folder and won't be affected.
+
+### Windows Security Warning
+
+This build is **not code-signed** (certificates cost ~$200-400/year). Windows SmartScreen will show a warning:
+
+> "Windows protected your PC - Microsoft Defender SmartScreen prevented an unrecognized app from starting."
+
+**To install anyway:**
+1. Click "More info"
+2. Click "Run anyway"
+
+This is normal for community builds without a certificate.
+
 ### MSI Installer (Recommended)
 1. Download the `.msi` file from Releases
 2. Double-click to install
-3. Launch Logseq from Start Menu
+3. If you see a SmartScreen warning, click "More info" → "Run anyway"
+4. Launch Logseq from Start Menu
 
 ### Portable Version
 1. Download the `.zip` file from Releases
