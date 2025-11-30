@@ -37,11 +37,13 @@ This fork removes the problematic dependencies and provides working ARM64 builds
 | Database graphs | Yes | Yes |
 | **Logseq Sync** | Yes | **Disabled** |
 | **Git integration** | Yes | **Disabled** |
+| **Auto-updates** | Yes | **Manual** (notification + download) |
 
 ### What You Lose
 
 - **Logseq Sync**: Cloud synchronization between devices (requires `@logseq/rsapi` which has no ARM64 build)
 - **Git integration**: Auto-commit, version history (requires `dugite` which has no ARM64 Git binary)
+- **Auto-updates**: Automatic background updates via Squirrel/electron-updater (this fork shows a notification banner with a download link instead)
 
 ### What You Keep
 
