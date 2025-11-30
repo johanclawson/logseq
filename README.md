@@ -180,6 +180,7 @@ This fork includes several optimizations for faster startup (production builds o
 
 | Optimization | How It Works |
 |--------------|--------------|
+| **Splash Screen** | Shows logo immediately while app loads in background |
 | **Parallel Worker + Repo Fetch** | DB worker init and repository fetch run concurrently |
 | **Async Graph List Reads** | File reads for graph metadata happen in parallel |
 | **Early WebGPU Check** | WebGPU capability check starts before DB restoration |

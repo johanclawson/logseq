@@ -178,12 +178,14 @@ Note: Uses Node.js 22's native `Module.enableCompileCache()` instead of `v8-comp
 
 | Optimization | File |
 |--------------|------|
+| Splash screen | `src/electron/electron/core.cljs`, `resources/splash.html` |
 | Parallelize worker + repo fetch | `src/main/frontend/handler.cljs` |
 | Async file reads for graph list | `src/electron/electron/handler.cljs` |
 | Move WebGPU check earlier | `src/main/frontend/handler.cljs` |
 | Defer git config | `src/electron/electron/core.cljs` |
 
 These changes are safe because:
+- Splash screen is independent of main app (closes when main window ready)
 - Worker init and repo fetch are independent operations (no state conflicts)
 - Async file reads use proper error handling for missing files
 - Git config is already stubbed for ARM64 (returns rejected promise)

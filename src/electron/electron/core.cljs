@@ -248,11 +248,44 @@
              (when-let [win @*win]
                (open-url-handler win url))))))
 
+;; Splash screen window atom
+(defonce *splash-win (atom nil))
+
+(defn- create-splash-window!
+  "Create a splash screen window that shows immediately on startup"
+  []
+  (let [splash (BrowserWindow. (clj->js {:width 300
+                                          :height 350
+                                          :frame false
+                                          :transparent true
+                                          :alwaysOnTop true
+                                          :skipTaskbar true
+                                          :resizable false
+                                          :center true
+                                          :show true
+                                          :webPreferences {:nodeIntegration false
+                                                           :contextIsolation true}}))]
+    (.loadFile splash (node-path/join js/__dirname "splash.html"))
+    (reset! *splash-win splash)
+    splash))
+
+(defn- close-splash-window!
+  "Close the splash screen if it exists"
+  []
+  (when-let [splash @*splash-win]
+    (when-not (.isDestroyed splash)
+      (.close splash))
+    (reset! *splash-win nil)))
+
 (defn- on-app-ready!
   [^js app']
   (.on app' "ready"
        (fn []
          (logger/info (str "Logseq App(" (.getVersion app') ") Starting... "))
+
+         ;; Show splash screen immediately
+         (when-not dev?
+           (create-splash-window!))
 
          ;; Add React developer tool
          (when-let [^js devtoolsInstaller (and dev? (js/require "electron-devtools-installer"))]
@@ -283,6 +316,9 @@
                         ;; Deferred operations after window is ready
                         (.once (.-webContents win) "did-finish-load"
                                (fn []
+                                 ;; Close splash and show main window
+                                 (close-splash-window!)
+                                 (.show win)
                                  (git/configure-auto-commit!)  ;; Deferred git config
                                  (setup-arm64-updater! win)))
 
