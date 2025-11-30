@@ -269,7 +269,8 @@
 
            (db/ensure-graphs-dir!)
 
-           (git/configure-auto-commit!)
+           ;; OPTIMIZATION: Git config is stubbed for ARM64, defer to after window load
+           ;; (git/configure-auto-commit!) - moved to did-finish-load below
 
            (vreset! *setup-fn
                     (fn []
@@ -279,9 +280,11 @@
                             t4 (server/setup! win)
                             tt (exceptions/setup-exception-listeners!)]
 
-                        ;; Check for ARM64 updates after window is ready
+                        ;; Deferred operations after window is ready
                         (.once (.-webContents win) "did-finish-load"
-                               #(setup-arm64-updater! win))
+                               (fn []
+                                 (git/configure-auto-commit!)  ;; Deferred git config
+                                 (setup-arm64-updater! win)))
 
                         (vreset! *teardown-fn
                                  #(doseq [f [t0 t1 t2 t3 t4 tt]]

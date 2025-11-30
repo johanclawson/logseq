@@ -139,11 +139,17 @@
 
 (defn start!
   [render]
-  (let [t1 (util/time-ms)]
+  (let [t1 (util/time-ms)
+        ;; Start WebGPU check early (runs in parallel with other init)
+        webgpu-check (when-not (util/mobile?)
+                       (db-browser/<check-webgpu-available?))]
+    ;; OPTIMIZATION: Render first, defer plugin init for faster window appearance
     (p/do!
      (idb/start)
-     (plugin-handler/setup!)
      (render))
+
+    ;; Defer plugin initialization after render (50ms delay for Electron stability)
+    (js/setTimeout #(plugin-handler/setup!) (if (util/electron?) 50 0))
 
     (get-system-info)
     (set-global-error-notification!)
@@ -166,9 +172,10 @@
 
     (p/do!
      (-> (p/let [t2 (util/time-ms)
-                 _ (db-browser/start-db-worker!)
+                 ;; OPTIMIZATION: Run worker init and repo fetch in parallel
+                 [_ repos] (p/all [(db-browser/start-db-worker!)
+                                   (repo-handler/get-repos)])
                  _ (log/info ::db-worker-spent-time (- (util/time-ms) t2))
-                 repos (repo-handler/get-repos)
                  _ (state/set-repos! repos)
                  _ (mobile-util/hide-splash) ;; hide splash as early as ui is stable
                  repo (or (state/get-current-repo) (:url (first repos)))
@@ -187,14 +194,15 @@
                       (state/set-db-restoring! false)
                       (p/resolve! state/app-ready-promise true)
                       (log/info ::app-init-spent-time (- (util/time-ms) t1))
-                      (when-not (util/mobile?)
-                        (p/let [webgpu-available? (db-browser/<check-webgpu-available?)]
+                      ;; OPTIMIZATION: Use early WebGPU check result
+                      (when webgpu-check
+                        (p/let [webgpu-available? webgpu-check]
                           (log/info :webgpu-available? webgpu-available?)
                           (when webgpu-available?
                             (p/do! (db-browser/start-inference-worker!)
                                    (db-browser/<connect-db-worker-and-infer-worker!)
-                                   (reset! vector-search-flows/*infer-worker-ready true))))
-                        nil))))
+                                   (reset! vector-search-flows/*infer-worker-ready true)))))
+                      nil)))
 
      (util/<app-wake-up-from-sleep-loop (atom false))
 

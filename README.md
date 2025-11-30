@@ -164,6 +164,8 @@ We stub out the rsapi and dugite dependencies:
 
 This fork includes several optimizations for faster startup (production builds only):
 
+**Build-time Optimizations:**
+
 | Optimization | Impact | How It Works |
 |--------------|--------|--------------|
 | **Node.js 22 Compile Cache** | 30-50% faster | Caches compiled JavaScript bytecode, avoiding re-parsing on launch |
@@ -171,6 +173,16 @@ This fork includes several optimizations for faster startup (production builds o
 | **Disabled Logging** | ~5-10% faster | Removes logging infrastructure from production builds |
 | **No Source Maps** | Smaller bundles | Omits debugging maps in release builds |
 | **Webpack Production Mode** | Tree shaking | Enables dead code elimination and minification |
+
+**Runtime Startup Optimizations:**
+
+| Optimization | Impact | How It Works |
+|--------------|--------|--------------|
+| **Deferred Plugin Init** | 1-2 sec faster | Window renders before plugins load (50ms delay) |
+| **Parallel Worker + Repo Fetch** | 150-500ms faster | DB worker init and repository fetch run concurrently |
+| **Async Graph List Reads** | 50-70% faster | File reads for graph metadata happen in parallel |
+| **Early WebGPU Check** | 50-150ms faster | WebGPU capability check starts before DB restoration |
+| **Deferred Git Config** | ~50ms faster | Git configuration moved to after window load |
 
 These optimizations are applied only to release builds - development builds retain full debugging capabilities.
 

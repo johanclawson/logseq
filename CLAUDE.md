@@ -162,6 +162,8 @@ These files contain ARM64 compatibility stubs. When syncing with upstream, **pre
 
 This fork includes startup optimizations (production builds only):
 
+**Build-time Optimizations:**
+
 | Optimization | File | Impact |
 |--------------|------|--------|
 | Node.js 22 Compile Cache | `resources/electron-entry.js` | 30-50% faster startup |
@@ -171,6 +173,22 @@ This fork includes startup optimizations (production builds only):
 | Webpack Production Mode | `webpack.config.js` | Tree shaking enabled |
 
 Note: Uses Node.js 22's native `Module.enableCompileCache()` instead of `v8-compile-cache` package (which doesn't support ESM modules).
+
+**Runtime Startup Optimizations:**
+
+| Optimization | File | Impact |
+|--------------|------|--------|
+| Defer plugin init after render | `src/main/frontend/handler.cljs` | 1-2 sec faster window appearance |
+| Parallelize worker + repo fetch | `src/main/frontend/handler.cljs` | 150-500ms faster |
+| Async file reads for graph list | `src/electron/electron/handler.cljs` | 50-70% faster repo inflation |
+| Move WebGPU check earlier | `src/main/frontend/handler.cljs` | 50-150ms faster |
+| Defer git config | `src/electron/electron/core.cljs` | ~50ms faster (already stubbed for ARM64) |
+
+These changes are safe because:
+- Plugin init is deferred by 50ms (slash commands work almost immediately after window appears)
+- Worker init and repo fetch are independent operations (no state conflicts)
+- Async file reads use proper error handling for missing files
+- Git config is already stubbed for ARM64 (returns rejected promise)
 
 ### In-App Update Notifications
 

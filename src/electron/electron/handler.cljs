@@ -249,6 +249,7 @@
   (get-graphs))
 
 (defn- read-txid-info!
+  "Synchronous version for backwards compatibility"
   [root]
   (try
     (let [txid-path (.join node-path root "logseq/graphs-txid.edn")]
@@ -259,17 +260,29 @@
     (catch :default e
       (logger/error "[read txid meta] #" root (.-message e)))))
 
+(defn- read-txid-info-async!
+  "OPTIMIZATION: Async version for parallel file reads"
+  [root]
+  (p/let [txid-path (.join node-path root "logseq/graphs-txid.edn")]
+    (-> (p/let [content (.readFile (.-promises fs) txid-path "utf8")]
+          (when (and (not (string/blank? root))
+                     (not (string/blank? content)))
+            (reader/read-string content)))
+        (p/catch (fn [_e]
+                   ;; File doesn't exist or can't be read - return nil
+                   nil)))))
+
 (defmethod handle :inflateGraphsInfo [_win [_ graphs]]
   (let [graphs (ldb/read-transit-str graphs)]
-    (-> (if (seq graphs)
-          (for [{:keys [root] :as graph} graphs]
-            (if-let [sync-meta (read-txid-info! root)]
-              (assoc graph
-                     :sync-meta sync-meta
-                     :GraphUUID (second sync-meta))
-              graph))
-          [])
-        ldb/write-transit-str)))
+    ;; OPTIMIZATION: Read all txid files in parallel using async I/O
+    (p/let [results (p/all (for [{:keys [root] :as graph} graphs]
+                             (p/let [sync-meta (read-txid-info-async! root)]
+                               (if sync-meta
+                                 (assoc graph
+                                        :sync-meta sync-meta
+                                        :GraphUUID (second sync-meta))
+                                 graph))))]
+      (ldb/write-transit-str (or (seq results) [])))))
 
 (defmethod handle :readGraphTxIdInfo [_win [_ root]]
   (read-txid-info! root))
