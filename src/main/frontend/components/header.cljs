@@ -255,6 +255,34 @@
          {:on-click #(handler/quit-and-install-new-version!)}
          (svg/reload 16) [:strong (t :updater/quit-and-install)]]]])))
 
+(rum/defc arm64-update-notification
+  "Shows notification when ARM64 update is available"
+  []
+  (let [[update-info set-update-info] (rum/use-state nil)
+        [dismissed set-dismissed] (rum/use-state false)
+        _ (hooks/use-effect!
+           (fn []
+             (when-let [channel (and (util/electron?) "arm64-update-available")]
+               (let [callback (fn [_ args]
+                                (js/console.debug "[ARM64 update available] args:" args)
+                                (set-update-info (bean/->clj args))
+                                nil)]
+                 (js/apis.addListener channel callback)
+                 #(js/apis.removeListener channel callback))))
+           [])]
+
+    (when (and update-info (not dismissed))
+      [:div.cp__header-tips.bg-indigo-600
+       [:p
+        [:span "Logseq " (:version update-info) " for ARM64 is available! "]
+        [:a.ml-2.underline.font-bold
+         {:href (:url update-info)
+          :target "_blank"}
+         "Download"]
+        [:a.ml-4.opacity-75.cursor-pointer
+         {:on-click #(set-dismissed true)}
+         "Dismiss"]]])))
+
 (defn- clear-recent-highlight!
   []
   (let [nodes (d/by-class "recent-block")]
@@ -470,7 +498,8 @@
 
        (sidebar/toggle)
 
-       (updater-tips-new-version t)]]]))
+       (updater-tips-new-version t)
+       (arm64-update-notification)]]]))
 
 (def ^:private header-related-flow
   (m/latest

@@ -16,6 +16,9 @@
 (def *update-pending (atom nil))
 (def debug (partial logger/debug "[updater]"))
 
+;; ARM64 fork update repository
+(def arm64-update-repo "johanclawson/logseq")
+
 ;Event: 'error'
 ;Event: 'checking-for-update'
 ;Event: 'update-available'
@@ -137,6 +140,40 @@
                        new-version-downloaded-cb))))
 
           (debug "Skip remote version [ahead of pre-release]" remote-version))))))
+
+(defn check-arm64-updates
+  "Check GitHub releases for newer ARM64 version.
+   Returns update info map if update available, nil otherwise."
+  []
+  (let [releases-url (str "https://api.github.com/repos/" arm64-update-repo "/releases")]
+    (debug "Checking ARM64 updates from" releases-url)
+    (p/catch
+     (p/let [res (fetch releases-url)
+             _ (when-not (.-ok res)
+                 (throw (js/Error. (str "GitHub API error: " (.-status res)))))
+             releases-json (.json res)
+             releases (js->clj releases-json :keywordize-keys true)
+             ;; Find latest ARM64 release (has -arm64 in tag)
+             arm64-release (->> releases
+                                (filter #(string/includes? (or (:tag_name %) "") "-arm64"))
+                                first)
+             _ (when-not arm64-release
+                 (throw (js/Error. "No ARM64 release found")))
+             remote-version (-> (:tag_name arm64-release)
+                                (string/replace "-arm64" ""))
+             _ (debug "Found ARM64 release:" remote-version "current:" electron-version)]
+       ;; Compare versions
+       (when (and (.valid semver remote-version)
+                  (.lt semver electron-version remote-version))
+         (debug "ARM64 update available:" remote-version)
+         {:version remote-version
+          :tag (:tag_name arm64-release)
+          :url (:html_url arm64-release)
+          :download-url (-> arm64-release :assets first :browser_download_url)
+          :body (:body arm64-release)}))
+     (fn [e]
+       (logger/warn "[ARM64 update check error]" e)
+       nil))))
 
 (defn init-updater
   [{:keys [repo ^js _win] :as opts}]

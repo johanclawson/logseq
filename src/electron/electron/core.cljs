@@ -44,6 +44,18 @@
     (init-updater {:repo   "logseq/logseq"
                    :win    win})))
 
+(defn setup-arm64-updater!
+  "Check for ARM64 updates on startup and notify renderer if available.
+   Only runs on ARM64 architecture in production."
+  [^js win]
+  (when (and (not dev?)
+             (= "arm64" js/process.arch))
+    (logger/info "Checking for ARM64 updates...")
+    (p/let [update-info (updater/check-arm64-updates)]
+      (when update-info
+        (logger/info "ARM64 update available:" (:version update-info))
+        (send-to-renderer :arm64-update-available (clj->js update-info))))))
+
 (defn open-url-handler
   "win - the main window instance (first renderer process)
    url - the input URL"
@@ -266,6 +278,10 @@
                             t3 (handler/set-ipc-handler! win)
                             t4 (server/setup! win)
                             tt (exceptions/setup-exception-listeners!)]
+
+                        ;; Check for ARM64 updates after window is ready
+                        (.once (.-webContents win) "did-finish-load"
+                               #(setup-arm64-updater! win))
 
                         (vreset! *teardown-fn
                                  #(doseq [f [t0 t1 t2 t3 t4 tt]]

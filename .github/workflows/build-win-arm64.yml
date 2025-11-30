@@ -1,15 +1,27 @@
 name: Build Windows ARM64
 
 on:
+  # Only build when version.cljs changes (upstream releases)
   push:
     branches: [master]
+    paths:
+      - 'src/main/frontend/version.cljs'
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
   compile-cljs:
     runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Get version from version.cljs
+        id: version
+        run: |
+          VERSION=$(grep -oP 'defonce version "\K[^"]+' src/main/frontend/version.cljs)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -86,9 +98,13 @@ jobs:
           path: builds/
 
   release:
-    needs: build-windows-arm64
+    needs: [compile-cljs, build-windows-arm64]
     runs-on: ubuntu-22.04
     if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.compile-cljs.outputs.version }}
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -96,22 +112,47 @@ jobs:
           name: logseq-win-arm64
           path: ./
 
-      - name: Create/Update Release
+      - name: Create versioned release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.VERSION }}-arm64
+          name: Windows ARM64 v${{ env.VERSION }}
+          prerelease: false
+          files: |
+            *.nupkg
+            *.zip
+            *.msi
+          body: |
+            ## Windows ARM64 v${{ env.VERSION }}
+
+            This is an unofficial Windows ARM64 build based on Logseq v${{ env.VERSION }}.
+
+            **What works:** Core note-taking, local files, whiteboards, plugins
+            **What's disabled:** Logseq Sync, Git integration (requires native ARM64 binaries)
+
+            ### Installation
+            - **MSI installer** (recommended): `Logseq-win-arm64.msi`
+            - **Portable ZIP**: `Logseq-win32-arm64-*.zip`
+
+            See [README](https://github.com/johanclawson/logseq#readme) for details.
+
+      - name: Update latest rolling release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: win-arm64-latest
-          name: Windows ARM64 Build
+          name: Windows ARM64 Latest (v${{ env.VERSION }})
           prerelease: true
           files: |
             *.nupkg
             *.zip
             *.msi
           body: |
-            ## Windows ARM64 Community Build
+            ## Windows ARM64 Latest
 
-            This is an unofficial Windows ARM64 build with Sync and Git features disabled.
+            **Current version:** v${{ env.VERSION }}
+
+            This rolling release always contains the latest ARM64 build.
+            For a specific version, see the [versioned releases](https://github.com/johanclawson/logseq/releases).
 
             **What works:** Core note-taking, local files, whiteboards, plugins
             **What's disabled:** Logseq Sync, Git integration
-
-            See README for details.
