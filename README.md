@@ -166,23 +166,23 @@ This fork includes several optimizations for faster startup (production builds o
 
 **Build-time Optimizations:**
 
-| Optimization | Impact | How It Works |
-|--------------|--------|--------------|
-| **Node.js 22 Compile Cache** | 30-50% faster | Caches compiled JavaScript bytecode, avoiding re-parsing on launch |
-| **Direct Function Invocation** | 10-30% faster | Uses `f(x)` instead of `f.call(null, x)` for function calls |
-| **Disabled Logging** | ~5-10% faster | Removes logging infrastructure from production builds |
-| **No Source Maps** | Smaller bundles | Omits debugging maps in release builds |
-| **Webpack Production Mode** | Tree shaking | Enables dead code elimination and minification |
+| Optimization | How It Works |
+|--------------|--------------|
+| **Node.js 22 Compile Cache** | Caches compiled JavaScript bytecode, avoiding re-parsing on launch |
+| **Direct Function Invocation** | Uses `f(x)` instead of `f.call(null, x)` for function calls |
+| **Disabled Logging** | Removes logging infrastructure from production builds |
+| **No Source Maps** | Omits debugging maps in release builds |
+| **Webpack Production Mode** | Enables dead code elimination and minification |
 
 **Runtime Startup Optimizations:**
 
-| Optimization | Impact | How It Works |
-|--------------|--------|--------------|
-| **Deferred Plugin Init** | 1-2 sec faster | Window renders before plugins load (50ms delay) |
-| **Parallel Worker + Repo Fetch** | 150-500ms faster | DB worker init and repository fetch run concurrently |
-| **Async Graph List Reads** | 50-70% faster | File reads for graph metadata happen in parallel |
-| **Early WebGPU Check** | 50-150ms faster | WebGPU capability check starts before DB restoration |
-| **Deferred Git Config** | ~50ms faster | Git configuration moved to after window load |
+| Optimization | How It Works |
+|--------------|--------------|
+| **Deferred Plugin Init** | Window renders before plugins load (50ms delay) |
+| **Parallel Worker + Repo Fetch** | DB worker init and repository fetch run concurrently |
+| **Async Graph List Reads** | File reads for graph metadata happen in parallel |
+| **Early WebGPU Check** | WebGPU capability check starts before DB restoration |
+| **Deferred Git Config** | Git configuration moved to after window load |
 
 These optimizations are applied only to release builds - development builds retain full debugging capabilities.
 
