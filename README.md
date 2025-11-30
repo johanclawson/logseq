@@ -166,13 +166,15 @@ This fork includes several optimizations for faster startup (production builds o
 
 | Optimization | Impact | How It Works |
 |--------------|--------|--------------|
-| **V8 Compile Cache** | 30-50% faster | Caches compiled JavaScript bytecode, avoiding re-parsing on launch |
+| **Node.js 22 Compile Cache** | 30-50% faster | Caches compiled JavaScript bytecode, avoiding re-parsing on launch |
 | **Direct Function Invocation** | 10-30% faster | Uses `f(x)` instead of `f.call(null, x)` for function calls |
 | **Disabled Logging** | ~5-10% faster | Removes logging infrastructure from production builds |
 | **No Source Maps** | Smaller bundles | Omits debugging maps in release builds |
 | **Webpack Production Mode** | Tree shaking | Enables dead code elimination and minification |
 
 These optimizations are applied only to release builds - development builds retain full debugging capabilities.
+
+*Note: Uses Node.js 22's native `Module.enableCompileCache()` which supports both CommonJS and ESM modules.*
 
 ## Upstream Sync
 

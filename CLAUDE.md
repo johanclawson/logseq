@@ -154,7 +154,7 @@ These files contain ARM64 compatibility stubs. When syncing with upstream, **pre
 | `src/electron/electron/git.cljs` | All git/dugite functions return rejected promises |
 | `src/electron/electron/utils.cljs` | Removed rsapi import, stubbed `set-rsapi-proxy` |
 | `resources/package.json` | Removed `@logseq/rsapi` and `dugite` dependencies |
-| `resources/electron-entry.js` | Entry point that loads V8 compile cache before main |
+| `resources/electron-entry.js` | Entry point that enables Node.js 22 compile cache before main |
 | `src/electron/electron/updater.cljs` | ARM64 update checker (checks this fork's releases) |
 | `src/main/frontend/components/header.cljs` | ARM64 update notification banner |
 
@@ -164,11 +164,13 @@ This fork includes startup optimizations (production builds only):
 
 | Optimization | File | Impact |
 |--------------|------|--------|
-| V8 Compile Cache | `resources/electron-entry.js` | 30-50% faster startup |
+| Node.js 22 Compile Cache | `resources/electron-entry.js` | 30-50% faster startup |
 | Direct Function Invocation | `shadow-cljs.edn` (`:fn-invoke-direct`) | 10-30% faster |
 | Disabled Logging | `shadow-cljs.edn` (`goog.debug.LOGGING_ENABLED`) | ~5-10% faster |
 | No Source Maps | `shadow-cljs.edn` (`:source-map false`) | Smaller bundles |
 | Webpack Production Mode | `webpack.config.js` | Tree shaking enabled |
+
+Note: Uses Node.js 22's native `Module.enableCompileCache()` instead of `v8-compile-cache` package (which doesn't support ESM modules).
 
 ### In-App Update Notifications
 
