@@ -123,7 +123,7 @@ The app checks for updates from this fork's releases only - it will **NOT** acci
 
 ```powershell
 # Clone
-git clone https://github.com/johanclawson/logseq.git
+git clone https://github.com/johanclawson/logseq-win-arm64.git
 cd logseq
 
 # Install dependencies

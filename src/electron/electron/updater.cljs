@@ -17,7 +17,7 @@
 (def debug (partial logger/debug "[updater]"))
 
 ;; ARM64 fork update repository
-(def arm64-update-repo "johanclawson/logseq")
+(def arm64-update-repo "johanclawson/logseq-win-arm64")
 
 ;Event: 'error'
 ;Event: 'checking-for-update'

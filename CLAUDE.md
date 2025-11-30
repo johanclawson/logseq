@@ -221,11 +221,11 @@ When upstream modifies stubbed files:
 Releases are automatic on push to master:
 - Tag: `win-arm64-latest` (rolling release)
 - Artifacts: MSI, ZIP, nupkg
-- URL: https://github.com/johanclawson/logseq/releases/tag/win-arm64-latest
+- URL: https://github.com/johanclawson/logseq-win-arm64/releases/tag/win-arm64-latest
 
 ### Links
 
-- **Fork**: https://github.com/johanclawson/logseq
+- **Fork**: https://github.com/johanclawson/logseq-win-arm64
 - **Upstream**: https://github.com/logseq/logseq
-- **CI Status**: https://github.com/johanclawson/logseq/actions
-- **Releases**: https://github.com/johanclawson/logseq/releases
+- **CI Status**: https://github.com/johanclawson/logseq-win-arm64/actions
+- **Releases**: https://github.com/johanclawson/logseq-win-arm64/releases
