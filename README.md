@@ -164,7 +164,23 @@ These optimizations are applied only to release builds - development builds reta
 
 ## Upstream Sync
 
-This fork periodically syncs with [logseq/logseq](https://github.com/logseq/logseq) to get new features and fixes, then reapplies the ARM64 patches.
+This fork tracks **official Logseq releases** (not the development branch):
+
+- **Weekly check**: Every Monday, GitHub Actions checks for new upstream release tags
+- **Release-based sync**: Only syncs when Logseq publishes a new version (e.g., `0.10.15`)
+- **Automatic PRs**: If merge is clean, a PR is created automatically
+- **Conflict handling**: If conflicts occur, an issue is created with manual resolution steps
+
+### Why Release Tags, Not Master?
+
+The upstream `master` branch contains unreleased/experimental code. By tracking release tags:
+- ARM64 users get the same stable version as official x64 users
+- Version numbers match between official and ARM64 builds
+- No risk of shipping broken or incomplete features
+
+### Current Version Status
+
+> **Note:** This fork may temporarily be ahead of or behind official releases during the sync process. Check the [Releases](../../releases) page for the current ARM64 version.
 
 ## Contributing
 

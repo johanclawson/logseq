@@ -1,4 +1,4 @@
-name: Sync Upstream
+name: Sync Upstream Release
 
 on:
   schedule:
@@ -23,29 +23,67 @@ jobs:
       - name: Add upstream remote
         run: git remote add upstream https://github.com/logseq/logseq.git
 
-      - name: Fetch upstream
-        run: git fetch upstream master
+      - name: Fetch upstream tags
+        run: git fetch upstream --tags
 
-      - name: Check for new commits
-        id: check
+      - name: Get current version
+        id: current
         run: |
-          UPSTREAM_COMMITS=$(git rev-list HEAD..upstream/master --count)
-          echo "upstream_commits=$UPSTREAM_COMMITS" >> $GITHUB_OUTPUT
-          if [ "$UPSTREAM_COMMITS" -eq "0" ]; then
-            echo "No new upstream commits"
-          else
-            echo "Found $UPSTREAM_COMMITS new upstream commits"
+          # Extract version from version.cljs
+          CURRENT_VERSION=$(grep -oP 'defonce version "\K[^"]+' src/main/frontend/version.cljs || echo "0.0.0")
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current fork version: $CURRENT_VERSION"
+
+      - name: Get latest upstream release tag
+        id: latest
+        run: |
+          # Get latest release tag (semantic version format: 0.10.14, 0.11.0, etc.)
+          # Filter for tags that look like version numbers, sort by version, take the latest
+          LATEST_TAG=$(git tag -l '[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1)
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No release tags found"
+            echo "tag=" >> $GITHUB_OUTPUT
+            exit 0
           fi
 
-      - name: Attempt merge
-        id: merge
-        if: steps.check.outputs.upstream_commits != '0'
-        run: |
-          # Create sync branch
-          git checkout -b sync-upstream-$(date +%Y%m%d)
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "Latest upstream release: $LATEST_TAG"
 
-          # Try to merge upstream
-          if git merge upstream/master --no-edit; then
+      - name: Check if update needed
+        id: check
+        run: |
+          CURRENT="${{ steps.current.outputs.version }}"
+          LATEST="${{ steps.latest.outputs.tag }}"
+
+          if [ -z "$LATEST" ]; then
+            echo "No upstream tags found, skipping"
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Compare versions using sort -V (version sort)
+          HIGHER=$(printf '%s\n%s' "$CURRENT" "$LATEST" | sort -V | tail -1)
+
+          if [ "$HIGHER" = "$LATEST" ] && [ "$CURRENT" != "$LATEST" ]; then
+            echo "Update available: $CURRENT -> $LATEST"
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+          else
+            echo "Already at latest or ahead: $CURRENT (latest: $LATEST)"
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Attempt merge with release tag
+        id: merge
+        if: steps.check.outputs.needs_update == 'true'
+        run: |
+          LATEST_TAG="${{ steps.latest.outputs.tag }}"
+
+          # Create sync branch
+          git checkout -b sync-upstream-$LATEST_TAG
+
+          # Try to merge the release tag
+          if git merge "$LATEST_TAG" --no-edit -m "Merge upstream release $LATEST_TAG"; then
             echo "merge_status=success" >> $GITHUB_OUTPUT
             echo "Merge successful!"
           else
@@ -57,22 +95,22 @@ jobs:
       - name: Push sync branch
         if: steps.merge.outputs.merge_status == 'success'
         run: |
-          git push origin sync-upstream-$(date +%Y%m%d)
+          git push origin sync-upstream-${{ steps.latest.outputs.tag }}
 
       - name: Create Pull Request
         if: steps.merge.outputs.merge_status == 'success'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: sync-upstream-${{ github.run_id }}
+          branch: sync-upstream-${{ steps.latest.outputs.tag }}
           delete-branch: true
-          title: "Sync with upstream logseq/logseq"
+          title: "Sync with upstream release ${{ steps.latest.outputs.tag }}"
           body: |
-            ## Upstream Sync
+            ## Upstream Release Sync
 
-            This PR merges the latest changes from [logseq/logseq](https://github.com/logseq/logseq).
+            This PR merges upstream release **${{ steps.latest.outputs.tag }}** from [logseq/logseq](https://github.com/logseq/logseq/releases/tag/${{ steps.latest.outputs.tag }}).
 
-            **Upstream commits:** ${{ steps.check.outputs.upstream_commits }}
+            **Version upgrade:** `${{ steps.current.outputs.version }}` → `${{ steps.latest.outputs.tag }}`
 
             ### Review Checklist
             - [ ] Check that ARM64 patches are still intact
@@ -83,60 +121,67 @@ jobs:
               - `resources/package.json`
             - [ ] Test build locally if significant changes
 
+            ### After Merging
+            Once merged, the build workflow will automatically:
+            1. Build the ARM64 version
+            2. Create release `${{ steps.latest.outputs.tag }}-arm64`
+            3. Notify users via in-app update notification
+
             ---
             *Auto-generated by sync-upstream workflow*
 
       - name: Create Issue on Conflict
         if: steps.merge.outputs.merge_status == 'conflict'
-        uses: peter-evans/create-issue-from-file@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Upstream sync requires manual intervention"
-          content-filepath: .github/UPSTREAM_CONFLICT_TEMPLATE.md
-          labels: upstream-sync, needs-attention
-
-      - name: Create conflict template if missing
-        if: steps.merge.outputs.merge_status == 'conflict'
         run: |
-          mkdir -p .github
-          cat > /tmp/conflict-issue.md << 'EOF'
-          ## Upstream Sync Conflict
+          LATEST_TAG="${{ steps.latest.outputs.tag }}"
+          CURRENT_VERSION="${{ steps.current.outputs.version }}"
 
-          The automatic sync with [logseq/logseq](https://github.com/logseq/logseq) encountered merge conflicts.
+          cat > /tmp/conflict-issue.md << EOF
+          ## Upstream Release Sync Conflict
+
+          The automatic sync with upstream release **$LATEST_TAG** encountered merge conflicts.
+
+          **Attempted upgrade:** \`$CURRENT_VERSION\` → \`$LATEST_TAG\`
 
           ### Manual Resolution Steps
 
-          1. Fetch upstream:
-             ```bash
+          1. Fetch upstream tags:
+             \`\`\`bash
              git remote add upstream https://github.com/logseq/logseq.git
-             git fetch upstream master
-             ```
+             git fetch upstream --tags
+             \`\`\`
 
-          2. Create sync branch and merge:
-             ```bash
-             git checkout -b sync-upstream-manual
-             git merge upstream/master
-             ```
+          2. Create sync branch and merge the release tag:
+             \`\`\`bash
+             git checkout -b sync-upstream-$LATEST_TAG
+             git merge $LATEST_TAG
+             \`\`\`
 
           3. Resolve conflicts in these likely files:
-             - `src/electron/electron/file_sync_rsapi.cljs`
-             - `src/electron/electron/git.cljs`
-             - `src/electron/electron/utils.cljs`
-             - `resources/package.json`
+             - \`src/electron/electron/file_sync_rsapi.cljs\`
+             - \`src/electron/electron/git.cljs\`
+             - \`src/electron/electron/utils.cljs\`
+             - \`resources/package.json\`
 
-          4. Ensure ARM64 stubs are preserved after resolving conflicts
+          4. **Important:** Ensure ARM64 stubs are preserved:
+             - rsapi functions should return rejected promises
+             - dugite/git functions should return rejected promises
+             - \`@logseq/rsapi\` and \`dugite\` should NOT be in package.json dependencies
 
           5. Test the build:
-             ```bash
+             \`\`\`bash
              yarn install
              yarn gulp:build
              yarn cljs:release-electron
-             ```
+             \`\`\`
 
           6. Push and create PR:
-             ```bash
-             git push origin sync-upstream-manual
-             ```
+             \`\`\`bash
+             git push origin sync-upstream-$LATEST_TAG
+             \`\`\`
+
+          ### Release Notes
+          See [upstream release notes](https://github.com/logseq/logseq/releases/tag/$LATEST_TAG) for changes in this version.
 
           ---
           *Auto-generated by sync-upstream workflow*
@@ -147,6 +192,6 @@ jobs:
         uses: peter-evans/create-issue-from-file@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Upstream sync requires manual intervention ($(date +%Y-%m-%d))"
+          title: "Sync with upstream release ${{ steps.latest.outputs.tag }} requires manual intervention"
           content-filepath: /tmp/conflict-issue.md
           labels: upstream-sync, needs-attention
