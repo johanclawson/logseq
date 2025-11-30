@@ -75,7 +75,10 @@ jobs:
         working-directory: static
         env:
           npm_config_arch: arm64
-        run: yarn install
+        run: |
+          git config --global url."https://github.com/".insteadOf ssh://git@github.com/
+          git config --global url."https://github.com/".insteadOf git@github.com:
+          yarn install
 
       - name: Build Electron ARM64
         working-directory: static
