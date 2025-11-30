@@ -81,13 +81,31 @@ This is normal for community builds without a certificate.
 ### Opening Your Notes
 When Logseq starts, click "Choose a folder" and select your existing graph folder (e.g., `OneDrive/Logseq`).
 
-## Auto-Update Behavior
+## Updates & Versioning
 
-This fork uses a different update channel. The app will:
-- Check for updates from this fork's releases
-- **NOT** accidentally update to official x64 builds
+### Version Sync with Upstream
 
-The updater is architecture-aware and only looks for ARM64 builds.
+This fork **syncs versions with official Logseq releases**:
+- ARM64 builds are only created when upstream Logseq releases a new version
+- Release tags match upstream: when Logseq releases `0.11.1`, we release `0.11.1-arm64`
+- No spam releases from weekly syncs - only actual version bumps trigger builds
+
+### In-App Update Notifications
+
+When a new ARM64 version is available, you'll see a notification banner in the app header:
+
+> "Logseq 0.11.1 for ARM64 is available! [Download] [Dismiss]"
+
+Click **Download** to open the GitHub releases page, or **Dismiss** to hide the notification.
+
+### Update Channels
+
+| Release Tag | Purpose |
+|-------------|---------|
+| `0.11.1-arm64` | Versioned release matching upstream |
+| `win-arm64-latest` | Rolling release, always has the latest build |
+
+The app checks for updates from this fork's releases only - it will **NOT** accidentally update to official x64 builds.
 
 ## Building From Source
 
@@ -129,6 +147,20 @@ We stub out the rsapi and dugite dependencies:
 - `src/electron/electron/file_sync_rsapi.cljs` - Returns "sync disabled" errors gracefully
 - `src/electron/electron/git.cljs` - Returns "git disabled" errors gracefully
 - `resources/package.json` - Removes problematic native dependencies
+
+### Startup Performance Optimizations
+
+This fork includes several optimizations for faster startup (production builds only):
+
+| Optimization | Impact | How It Works |
+|--------------|--------|--------------|
+| **V8 Compile Cache** | 30-50% faster | Caches compiled JavaScript bytecode, avoiding re-parsing on launch |
+| **Direct Function Invocation** | 10-30% faster | Uses `f(x)` instead of `f.call(null, x)` for function calls |
+| **Disabled Logging** | ~5-10% faster | Removes logging infrastructure from production builds |
+| **No Source Maps** | Smaller bundles | Omits debugging maps in release builds |
+| **Webpack Production Mode** | Tree shaking | Enables dead code elimination and minification |
+
+These optimizations are applied only to release builds - development builds retain full debugging capabilities.
 
 ## Upstream Sync
 
