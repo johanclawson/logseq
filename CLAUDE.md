@@ -154,6 +154,28 @@ These files contain ARM64 compatibility stubs. When syncing with upstream, **pre
 | `src/electron/electron/git.cljs` | All git/dugite functions return rejected promises |
 | `src/electron/electron/utils.cljs` | Removed rsapi import, stubbed `set-rsapi-proxy` |
 | `resources/package.json` | Removed `@logseq/rsapi` and `dugite` dependencies |
+| `resources/electron-entry.js` | Entry point that loads V8 compile cache before main |
+| `src/electron/electron/updater.cljs` | ARM64 update checker (checks this fork's releases) |
+| `src/main/frontend/components/header.cljs` | ARM64 update notification banner |
+
+### Performance Optimizations
+
+This fork includes startup optimizations (production builds only):
+
+| Optimization | File | Impact |
+|--------------|------|--------|
+| V8 Compile Cache | `resources/electron-entry.js` | 30-50% faster startup |
+| Direct Function Invocation | `shadow-cljs.edn` (`:fn-invoke-direct`) | 10-30% faster |
+| Disabled Logging | `shadow-cljs.edn` (`goog.debug.LOGGING_ENABLED`) | ~5-10% faster |
+| No Source Maps | `shadow-cljs.edn` (`:source-map false`) | Smaller bundles |
+| Webpack Production Mode | `webpack.config.js` | Tree shaking enabled |
+
+### In-App Update Notifications
+
+ARM64 users get update notifications via:
+1. `src/electron/electron/updater.cljs` - Checks GitHub API for new releases
+2. `src/electron/electron/core.cljs` - Sends update info to renderer on startup
+3. `src/main/frontend/components/header.cljs` - Displays notification banner
 
 ### ARM64 Build Commands
 
@@ -181,29 +203,31 @@ yarn electron:make-win-arm64
 
 | Workflow | File | Trigger | Purpose |
 |----------|------|---------|---------|
-| Build ARM64 | `.github/workflows/build-win-arm64.yml` | Push to master | Build & publish ARM64 releases |
-| Sync Upstream | `.github/workflows/sync-upstream.yml` | Weekly (Mon 6:00 UTC) | Sync with logseq/logseq |
+| Build ARM64 | `.github/workflows/build-win-arm64.yml` | `version.cljs` changes or manual | Build & publish ARM64 releases |
+| Sync Upstream | `.github/workflows/sync-upstream.yml` | Weekly (Mon 6:00 UTC) | Sync with upstream release tags |
 
 **Build workflow jobs:**
-1. `compile-cljs` (Ubuntu) - Builds ClojureScript
+1. `compile-cljs` (Ubuntu) - Builds ClojureScript with optimizations
 2. `build-windows-arm64` (Windows) - Builds Electron with `npm_config_arch=arm64`
-3. `release` (Ubuntu) - Publishes to GitHub Releases
+3. `release` (Ubuntu) - Publishes versioned (`0.11.0-arm64`) and rolling (`win-arm64-latest`) releases
 
 **Sync workflow behavior:**
-- Creates PR if merge is clean
-- Creates issue with manual steps if conflicts occur
+- Tracks **release tags** (not master) - only syncs when upstream publishes a new version
+- Compares `version.cljs` with latest upstream tag (e.g., `0.10.14`, `0.11.0`)
+- Creates PR if merge is clean, issue if conflicts occur
 - Can be triggered manually via workflow_dispatch
 
 ### Upstream Sync Process
 
 Automatic (weekly):
-- Workflow creates PR or issue depending on conflict status
+- Checks for new upstream release tags
+- Only syncs when a newer version exists (won't sync if fork is ahead)
 
 Manual:
 ```bash
 git remote add upstream https://github.com/logseq/logseq.git
-git fetch upstream master
-git merge upstream/master
+git fetch upstream --tags
+git merge <release-tag>  # e.g., 0.10.15
 # Resolve conflicts - KEEP OUR STUBS in the files listed above
 git push origin master
 ```
