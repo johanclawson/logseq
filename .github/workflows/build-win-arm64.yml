@@ -76,7 +76,7 @@ jobs:
         env:
           npm_config_arch: arm64
         run: |
-          git config --global url."https://github.com/".insteadOf ssh://git@github.com/
+          git config --global url."https://github.com".insteadOf ssh://git@github.com
           git config --global url."https://github.com/".insteadOf git@github.com:
           yarn install
 
