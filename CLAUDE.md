@@ -125,8 +125,8 @@ Or via winget + clj-msi installer from https://github.com/casselc/clj-msi/releas
 
 ## ARM64 Fork Information
 
-> **This is a community fork** providing working Windows ARM64 builds with **full functionality**.
-> The sections below are specific to this fork.
+> **This is a community fork** providing temporary Windows ARM64 builds for the impatient and brave souls that can't wait for the official release 😊
+> Sooner or later we will try to do pull requests to the official Logseq branch!
 
 ### Why This Fork Exists
 

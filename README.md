@@ -1,7 +1,7 @@
 # Logseq Windows ARM64 Community Build
 
-> **This is an unofficial community fork** providing working Windows ARM64 builds with **full functionality**.
-> The official Logseq repository does not publish ARM64 releases.
+> **This is an unofficial community fork** providing temporary Windows ARM64 builds for the impatient and brave souls that can't wait for the official release 😊
+> Sooner or later I will try to do pull requests to the official Logseq branch!
 
 > **Version Note:** This fork is currently at version `0.11.0`, which is ahead of the latest official stable release (`0.10.14`). This happened because we initially synced with upstream's development branch. Going forward, we will only sync with official stable releases to ensure version parity. See [Upstream Sync](#upstream-sync) for details.
 
