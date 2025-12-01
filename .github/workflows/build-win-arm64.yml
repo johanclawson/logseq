@@ -174,26 +174,15 @@ jobs:
       - name: Install rsapi ARM64 binary
         shell: pwsh
         run: |
-          # Create the platform-specific rsapi package directory
-          $rsapiDir = "static/node_modules/@logseq/rsapi-win32-arm64-msvc"
-          New-Item -ItemType Directory -Force -Path $rsapiDir
+          # Copy the built binary directly into the @logseq/rsapi package directory
+          # The index.js checks for local file first: existsSync(join(__dirname, 'rsapi.win32-arm64-msvc.node'))
+          $rsapiDir = "static/node_modules/@logseq/rsapi"
 
-          # Copy the built binary
-          Copy-Item "rsapi-arm64/rsapi.win32-arm64-msvc.node" -Destination $rsapiDir/
+          # Copy the built binary to the rsapi package directory
+          Copy-Item "rsapi-arm64/rsapi.win32-arm64-msvc.node" -Destination "$rsapiDir/"
 
-          # Create package.json for the platform package
-          @"
-          {
-            "name": "@logseq/rsapi-win32-arm64-msvc",
-            "version": "0.0.92",
-            "os": ["win32"],
-            "cpu": ["arm64"],
-            "main": "rsapi.win32-arm64-msvc.node"
-          }
-          "@ | Out-File -FilePath "$rsapiDir/package.json" -Encoding utf8
-
-          Write-Host "rsapi ARM64 binary installed:"
-          Get-ChildItem $rsapiDir
+          Write-Host "rsapi ARM64 binary installed to @logseq/rsapi:"
+          Get-ChildItem $rsapiDir -Filter "*.node"
 
       - name: Build Electron ARM64
         working-directory: static
