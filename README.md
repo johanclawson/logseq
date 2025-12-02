@@ -47,6 +47,40 @@ This fork compiles the native modules that upstream doesn't provide for ARM64:
 - **Git integration**: Works! We use `dugite-native` ARM64 binaries (available since v2.47.3)
 - **Auto-updates**: Shows a notification banner when updates are available (click to download from GitHub releases)
 
+### Minor Hotfixes
+
+This fork includes fixes for upstream Logseq bugs:
+
+| Fix | Upstream Issue | Description |
+|-----|----------------|-------------|
+| **Linked references sort order** | [#11201](https://github.com/logseq/logseq/issues/11201) | Fixed linked references page groups showing oldest dates first instead of newest first |
+
+### Startup Performance Optimizations
+
+This fork includes several optimizations for faster startup (production builds only):
+
+**Build-time Optimizations:**
+
+| Optimization | How It Works |
+|--------------|--------------|
+| **Node.js 22 Compile Cache** | Caches compiled JavaScript bytecode, avoiding re-parsing on launch |
+| **Direct Function Invocation** | Uses `f(x)` instead of `f.call(null, x)` for function calls |
+| **Disabled Logging** | Removes logging infrastructure from production builds |
+| **No Source Maps** | Omits debugging maps in release builds |
+| **Webpack Production Mode** | Enables dead code elimination and minification |
+
+**Runtime Startup Optimizations:**
+
+| Optimization | How It Works |
+|--------------|--------------|
+| **Splash Screen** | Shows logo immediately while app loads in background |
+| **Parallel Worker + Repo Fetch** | DB worker init and repository fetch run concurrently |
+| **Async Graph List Reads** | File reads for graph metadata happen in parallel |
+| **Early WebGPU Check** | WebGPU capability check starts before DB restoration |
+| **Deferred Git Config** | Git configuration moved to after window load |
+
+*Note: Uses Node.js 22's native `Module.enableCompileCache()` which supports both CommonJS and ESM modules.*
+
 ### Everything Works
 
 All Logseq features work natively on Windows ARM64:
@@ -170,42 +204,6 @@ We compile the missing native modules for ARM64 in our CI workflow:
 2. **dugite**: Uses pre-built ARM64 binary from [dugite-native](https://github.com/desktop/dugite-native/releases)
    - ARM64 support added in v2.47.3
    - Downloaded during CI via `npm_config_arch=arm64`
-
-### Minor Hotfixes
-
-This fork includes fixes for upstream Logseq bugs:
-
-| Fix | Upstream Issue | Description |
-|-----|----------------|-------------|
-| **Linked references sort order** | [#11201](https://github.com/logseq/logseq/issues/11201) | Fixed linked references page groups showing oldest dates first instead of newest first |
-
-### Startup Performance Optimizations
-
-This fork includes several optimizations for faster startup (production builds only):
-
-**Build-time Optimizations:**
-
-| Optimization | How It Works |
-|--------------|--------------|
-| **Node.js 22 Compile Cache** | Caches compiled JavaScript bytecode, avoiding re-parsing on launch |
-| **Direct Function Invocation** | Uses `f(x)` instead of `f.call(null, x)` for function calls |
-| **Disabled Logging** | Removes logging infrastructure from production builds |
-| **No Source Maps** | Omits debugging maps in release builds |
-| **Webpack Production Mode** | Enables dead code elimination and minification |
-
-**Runtime Startup Optimizations:**
-
-| Optimization | How It Works |
-|--------------|--------------|
-| **Splash Screen** | Shows logo immediately while app loads in background |
-| **Parallel Worker + Repo Fetch** | DB worker init and repository fetch run concurrently |
-| **Async Graph List Reads** | File reads for graph metadata happen in parallel |
-| **Early WebGPU Check** | WebGPU capability check starts before DB restoration |
-| **Deferred Git Config** | Git configuration moved to after window load |
-
-These optimizations are applied only to release builds - development builds retain full debugging capabilities.
-
-*Note: Uses Node.js 22's native `Module.enableCompileCache()` which supports both CommonJS and ESM modules.*
 
 ## Upstream Sync
 
