@@ -8,6 +8,10 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
     steps:
       - name: Checkout fork
         uses: actions/checkout@v4
